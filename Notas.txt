@@ -1,0 +1,74 @@
+Notas y recomendaciones - Socket RSA + AES + OTP
+
+Contenido:
+
+* Explicación general
+* Recomendaciones de seguridad
+* Mejoras sugeridas
+* Tareas para producción
+
+1. Explicación general
+
+Este proyecto implementa un protocolo híbrido de seguridad para comunicaciones cliente-servidor:
+
+* RSA (asimétrico) se usa para proteger el intercambio de la clave simétrica (AES).
+* AES-GCM (simbólico) se usa para cifrar mensajes y ofrecer confidencialidad + integridad.
+* OTP (One-Time Password) se usa como un paso adicional de autenticación: el servidor genera
+  un código temporal que el cliente debe devolver para demostrar que puede descifrar mensajes.
+
+Flujo simplificado:
+
+1. El servidor envía su clave pública RSA al cliente.
+2. El cliente genera una clave AES de sesión y la cifra con la clave pública del servidor (OAEP).
+3. El servidor descifra la clave AES con su clave privada.
+4. El servidor genera un OTP (6 dígitos), lo cifra con AES y lo envía al cliente.
+5. El cliente descifra el OTP y lo devuelve cifrado con AES.
+6. Si el servidor valida que el OTP coincide y no ha sido usado, se establece la comunicación segura.
+
+2) Recomendaciones de seguridad
+
+* Use siempre librerías probadas: PyCryptodome o pyca/cryptography en Python.
+* No guarde claves privadas en texto plano sin protecciones (usar permisos estrictos, HSM o KMS).
+* Use OAEP para cifrar con RSA y PSS para firmas. Nunca usar RSA "sin padding".
+* Use AES-GCM u otro AEAD para cifrado autenticado. Evite ECB/CBC sin integridad.
+* Nunca reutilice nonce/IV con la misma clave en AES-GCM. Nonce de 12 bytes aleatorios es estándar.
+* Implemente Forward Secrecy (PFS) si la seguridad lo requiere: usar ECDHE para negociar claves efímeras.
+* Para OTP en producción, prefiera TOTP (RFC 6238) o HOTP (RFC 4226) con almacenamiento seguro.
+* Proteja contra reintentos: rate limiting, bloqueo temporal y registro de intentos fallidos.
+* Evite enviar mensajes de control en texto plano (p. ej., AUTH_FAIL). Todo debería cifrarse.
+* Use certificados X.509 y TLS para manejar autenticación y evitar implementar protocolos desde cero.
+
+3. Mejoras sugeridas
+
+* Firma de clave pública del servidor con RSA-PSS o uso de certificados para evitar MITM.
+* Reemplazar OTP en memoria por TOTP (compatibilidad con apps como Google Authenticator)
+  o por envío por canal seguro (correo/ SMS) con mitigaciones de seguridad.
+* Registrar logs estructurados (nivelado, rotación, mascaramiento de datos sensibles).
+* Añadir expiración de OTP (TTL) y persistencia en base de datos (Redis con expiración).
+* Añadir soporte para múltiples clientes, identificación de sesiones y gestión de claves por sesión.
+* Usar HMAC o firmas dentro del protocolo para verificar integridad adicional.
+
+4. Checklist para producción
+
+* [ ] Revisar dependencias y usar versiones soportadas.
+* [ ] Implementar TLS con certificados válidos.
+* [ ] Mover claves privadas a KMS/HSM.
+* [ ] Implementar PFS mediante ECDHE.
+* [ ] Implementar TOTP/HOTP estándar para 2FA.
+* [ ] Añadir monitoreo y alertas de seguridad.
+* [ ] Implementar pruebas de integración y fuzzing del protocolo.
+
+5. Notas sobre rendimiento y escalabilidad
+
+* AES es rápido; la mayor carga es RSA durante el handshake. Para muchos clientes, usar esquemas de clave efímera o carga balanceada.
+* Para alta concurrencia, utilizar procesos o servidores con IO asíncrono en lugar de hilos, o usar frameworks (uvloop, asyncio).
+
+6. Referencias útiles
+
+* RFC 3447 (PKCS #1 v2.1) — RSA Cryptography Specifications
+* RFC 5116 — Cryptographic Interface Implementation
+* RFC 6238 — TOTP Time-Based One-Time Password Algorithm
+* PyCryptodome documentation
+* OWASP Cryptographic Storage Cheat Sheet
+
+Fin del documento.

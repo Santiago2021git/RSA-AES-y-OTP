@@ -1,0 +1,25 @@
+"""
+Implementación en Python de una comunicación cliente-servidor por sockets
+con:
+ - Intercambio de clave RSA (servidor publica su clave pública)
+ - Cifrado simétrico de mensajes con AES-GCM (clave de sesión generada por cliente)
+ - Validación de uso único OTP (One-Time Password) generada por el servidor
+
+Archivos incluidos en este documento:
+ - server.py  # servidor que maneja RSA, AES y OTP de un solo uso
+ - client.py  # cliente que solicita la clave pública, envía AES key cifrada con RSA
+
+Requisitos:
+ pip install pycryptodome
+
+Instrucciones de ejecución:
+ 1) Ejecutar primero el servidor: python server.py
+ 2) Luego ejecutar el cliente: python client.py
+
+Notas de seguridad y diseño:
+ - Este ejemplo es educativo: la clave RSA se envía en claro al conectar (puede enviarse por un endpoint seguro o guardarla en archivo).
+ - AES-GCM ofrece confidencialidad e integridad (tag verificable).
+ - OTP: el servidor genera un OTP numérico de 6 dígitos, lo marca como "no usado" y espera que el cliente lo devuelva. Tras validarlo, se marca como usado.
+ - Para producción: añadir autenticación mutuamente verificada (certificados), renovar claves, manejo seguro de archivos y protección contra replay attacks con nonces y counters más estrictos.
+
+
